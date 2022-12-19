@@ -14,8 +14,10 @@ int main(){
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
     std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[sec]" << std::endl;
+    countMinSketchObject.save_sketch("sketch_file.sketch");
 
 
+    countMinSketchObject.createCountMinSketch("sketch_file.sketch");
 
     string query_file_name="input/test_exact_count_lhg22L20MC5x_20000.txt", query_result_file_name="output/query_result.csv";
     ifstream infile(query_file_name);
@@ -30,4 +32,6 @@ int main(){
         // cout<<kmer<<","<<true_count<<","<<countMinSketchObject.estimate_count(kmer)<<endl;
         query_result_file <<kmer<<","<<true_count<<","<<countMinSketchObject.estimate_count(kmer)<<endl;
     }
+
+    
 }

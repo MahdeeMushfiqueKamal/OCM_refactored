@@ -104,7 +104,7 @@ class CountMinSketch{
     ccmbase<CounterType, HashStruct> *sketch;
     bool conservative; 
     bool canonicalize;
-    int seed; 
+    int seed = 137; 
 public:
     void createCountMinSketch(int height, int width, bool conservative, bool canonicalize){
         int np = log2(width);
@@ -114,6 +114,26 @@ public:
             if(conservative) std::cout<<"New conservative count min sketch created with height: "<<height<<" width: "<< (1<<np) <<"\n";
             else std::cout<<"New count min sketch created with height: "<<height<<", width: "<< (1<<np) <<"\n";
         }
+    }
+
+    void createCountMinSketch(std::string input_sketch_name){
+        if(!sketch) delete sketch;
+        ifstream input_sketch_file(input_sketch_name, std::ios::in | std::ios::binary);
+        if(!input_sketch_file.is_open()){
+            cout<<"Can't open sketch file\n";
+            return;
+        }
+        uint32_t NP, NH;  uint64_t SEED;
+        std::cout<<"Came here 0\n";
+        input_sketch_file.read(reinterpret_cast<char *>(&NP), sizeof(NP));
+        input_sketch_file.read(reinterpret_cast<char *>(&NH), sizeof(NH));
+        input_sketch_file.read(reinterpret_cast<char *>(&SEED), sizeof(SEED));
+        input_sketch_file.close();
+
+        std::cout<<"Came here "<<NP<<" "<<NH<<" "<<SEED<<"\n";
+
+        sketch = new ccmbase<CounterType, HashStruct>(NP, NH, SEED, false);
+        sketch->load_from_sketch(input_sketch_name);
     }
 
     void updateCountFromFile(std::string filename, int kmerLen){
@@ -183,6 +203,10 @@ public:
     CounterType estimate_count(std::string kmer_str){
         uint_fast64_t kmer_val = cal(kmer_str);
         return sketch->estimate_count(kmer_val);
+    }
+
+    void save_sketch(std::string output_file_name){
+        sketch->save_sketch(output_file_name);
     }
 
     
