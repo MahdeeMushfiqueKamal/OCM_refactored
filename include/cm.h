@@ -1,61 +1,9 @@
 #include<bits/stdc++.h>
 #include <assert.h>
 #include "hash.h"
+#include "support.h"
 
-//support function
-uint64_t addChar(uint64_t k_mer, char ch){
-    switch(ch)
-    {
-        case 'A':
-                k_mer = k_mer<<2; // A=00
-                break;
-        case 'T':
-                k_mer = k_mer<<2;
-                k_mer = k_mer | 1;   //T=01
-                break;
-        case 'G':
-                k_mer = k_mer<<2;  //G=10
-                k_mer = k_mer | 2;
-                break;
-        case 'C':
-                k_mer = k_mer<<2; //C=11
-                k_mer = k_mer | 3;
-                break;
-    }
-    return k_mer;
-}
 
-int64_t reverse_compliment(uint64_t cal_kmer, int kmer_length)
-    {
-        uint64_t k_mer = 0;
-        uint64_t mask = 3;
-
-        for(int i=0; i<kmer_length; i++)
-        {
-            switch(cal_kmer & mask)
-            {
-
-            case 0:
-                k_mer = k_mer<<2;
-                k_mer = k_mer | 1;   //A=00->T=01
-                break;
-            case 1:
-                k_mer = k_mer<<2; //T=01->A=00
-                break;
-            case 2:
-                k_mer = k_mer<<2; //G=10->C=11
-                k_mer = k_mer | 3;
-                break;
-            case 3:
-                k_mer = k_mer<<2;  //C=11->G=10
-                k_mer = k_mer | 2;
-                break;
-
-            }
-            cal_kmer=cal_kmer>>2;
-        }
-        return k_mer;
-    }
 
 using std::allocator;
 template<typename CounterType=int32_t , typename HashStruct = WangHash >
@@ -84,8 +32,8 @@ public:
         for(unsigned added = 0; added < nh_; added++){
             CounterType hv = hf_(val ^ seeds_[added]);
             pos[added] = (hv & mask_) + (added << np_);   // exact positions where we will increase the counter by one.
+            // std::cout<<"hash "<<added<<" :"<< pos[added]<<"  \n";
         }
-
         if(conservative_ == false){
             for(unsigned added = 0; added < nh_; added++) core_[pos[added]]++;
         }
@@ -148,10 +96,6 @@ public:
         }
 
     }
-
-    void printInfo(){
-        std::cout<<np_<<" "<<nh_<<" \n";
-    }
 };
 
 
@@ -164,7 +108,12 @@ class CountMinSketch{
 public:
     void createCountMinSketch(int height, int width, bool conservative, bool canonicalize){
         int np = log2(width);
-        sketch = new ccmbase<CounterType, HashStruct>(height, np, seed, conservative);
+        // ccmbase(unsigned np, unsigned nh=10, unsigned seedseed=137, bool conservative = false) 
+        sketch = new ccmbase<CounterType, HashStruct>(np, height, seed, conservative);
+        if(sketch != NULL){
+            if(conservative) std::cout<<"New conservative count min sketch created with height: "<<height<<" width: "<< (1<<np) <<"\n";
+            else std::cout<<"New count min sketch created with height: "<<height<<", width: "<< (1<<np) <<"\n";
+        }
     }
 
     void updateCountFromFile(std::string filename, int kmerLen){
@@ -174,34 +123,37 @@ public:
         char arr_chunk[chunk_size];
         bool isInHeader = false;
         uint64_t MASK = (1ull << (2*kmerLen)) -1;
+        uint64_t checksum = 0;
         // std::cout<<"value of mask: "<<MASK<<std::endl;
         // int chunk_count = 0; int line_no =1;
         while(!fasta_file.eof())
         {
             // chunk_count++;
             fasta_file.read(arr_chunk, chunk_size);
-            int i = 0;
+            std::streamsize originalChunkSize = fasta_file.gcount();
+            // https://stackoverflow.com/a/20911639/10941480
+            // std::cout<<"Chunk found datasize: "<<dataSize<<"\n";
+            // int i = 0;
 
-            while(i<chunk_size)
-            {
-                char ch = arr_chunk[i];
-                if(ch==EOF)break;            
+            // while(i<chunk_size)
+            for(int i=0; i< originalChunkSize; i++){
+                char ch = arr_chunk[i];         
                 // if (ch == '\n')line_no++;
                 // std::cout<<"char found "<<ch<<std::endl;
                 if(ch == '>'){
                     isInHeader = true;
                     currentKmer = 0; current_len = 0;
-                    i++; continue;
+                    continue;
                 }
                 else if (isInHeader==true && ch=='\n'){
                     isInHeader = false;
-                    i++; continue;
+                    continue;
                 }
-                if(isInHeader){i+=1;continue;}
-                if(ch=='\n' || ch=='\r' || ch==' '){i+=1;continue;}
-                if(ch=='N'){
+                if(isInHeader){continue;}
+                if(ch=='\n' || ch=='\r' || ch==' '){continue;}
+                if(ch=='N' || ch == 'n'){
                     currentKmer = 0;current_len = 0;
-                    i+=1;continue;
+                    continue;
                 }
                 else
                 {
@@ -218,18 +170,22 @@ public:
                     if(current_len==kmerLen)
                     {
                         //GOT KMER -- do the necessary things
+                        checksum += currentKmer;
                         sketch->update_count(currentKmer);
                         if(canonicalize) sketch->update_count(reverse_compliment(currentKmer, kmerLen));
                     }
                 }
-                i+=1;
             }
         }
+        std::cout<<"Updated Kmers from "<<filename<<", checksum "<<checksum<<"\n";
     }
 
-    void printInfo(){
-        sketch->printInfo();
+    CounterType estimate_count(std::string kmer_str){
+        uint_fast64_t kmer_val = cal(kmer_str);
+        return sketch->estimate_count(kmer_val);
     }
+
+    
 };
 
 
