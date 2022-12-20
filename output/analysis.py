@@ -7,10 +7,10 @@ print(df.head())
 print("Checking if there exists any row for which truecount > estimated count")
 print(df.loc[df['true_count'] > df['estimated_count']])
 
-print("sparman correlation coffecient:")
-sp_corr = df.corr(method='spearman')['true_count'].drop('true_count')
+print("\n------------\nsparman correlation coffecient:")
+sp_corr = df[['true_count','estimated_count']].corr(method='spearman')['true_count'].drop('true_count')
 print(sp_corr)
 
 
 rms_error = math.sqrt(sklearn.metrics.mean_squared_error(df['true_count'], df['estimated_count']))
-print("RMS Error: ",rms_error)
+print("\n------------\nRMS Error: ",rms_error)

@@ -7,7 +7,7 @@ using namespace std;
 
 int main(){
     CountMinSketch <uint64_t, WangHash> countMinSketchObject;
-    countMinSketchObject.createCountMinSketch(7,1048576, true, true);
+    countMinSketchObject.createCountMinSketch(7,1048576*2, true, true);
     
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     countMinSketchObject.updateCountFromFile("input/lhg22L20MC5x.fa",22);
