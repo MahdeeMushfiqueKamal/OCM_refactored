@@ -1,4 +1,9 @@
-#include<bits/stdc++.h>
+// #include<bits/stdc++.h>
+#include <vector>
+#include <random>
+#include <limits>
+#include <fstream>
+#include <cmath>
 #include <assert.h>
 #include "hash.h"
 #include "support.h"
