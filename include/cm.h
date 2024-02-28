@@ -171,7 +171,7 @@ public:
                 }
                 if(isInHeader){continue;}
                 if(ch=='\n' || ch=='\r' || ch==' '){continue;}
-                if(ch=='N' || ch == 'n'){
+                if(ch=='N' || ch == 'n' || ch == 'X' || ch == 'x'){
                     currentKmer = 0;current_len = 0;
                     continue;
                 }
