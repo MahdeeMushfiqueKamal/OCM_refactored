@@ -128,15 +128,14 @@ public:
             return;
         }
         uint32_t NP, NH;  uint64_t SEED;
-        std::cout<<"Came here 0\n";
         input_sketch_file.read(reinterpret_cast<char *>(&NP), sizeof(NP));
         input_sketch_file.read(reinterpret_cast<char *>(&NH), sizeof(NH));
         input_sketch_file.read(reinterpret_cast<char *>(&SEED), sizeof(SEED));
         input_sketch_file.close();
 
-        std::cout<<"Came here "<<NP<<" "<<NH<<" "<<SEED<<"\n";
-
         sketch = new ccmbase<CounterType, HashStruct>(NP, NH, SEED, false);
+        // note while creating a new object from sketch file, we are setting conservative = False. 
+        // This is because, we are not storing the conservative flag in the sketch file.
         sketch->load_from_sketch(input_sketch_name);
     }
 

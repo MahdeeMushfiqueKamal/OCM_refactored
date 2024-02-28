@@ -146,3 +146,41 @@ public:
 };
 
 
+template<typename CounterType=int32_t , typename HashStruct = WangHash >
+class OfflineCountMinSketch{
+    ocmbase<CounterType, HashStruct> *sketch;
+    int total_round;
+    bool conservative;
+    bool canonicalize;
+    int seed = 137;
+public:
+    void createOfflineCountMinSketch(int np, int nh, int total_round, bool conservative, bool canonicalize){
+        sketch = new ocmbase<CounterType, HashStruct>(np, nh, seed, conservative);
+        this->total_round = total_round;
+        this->conservative = conservative;
+        this->canonicalize = canonicalize;
+        if(sketch != NULL){
+            if(conservative) std::cout<<"New Offline Conservative Count Min Sketch Created\n";
+            else std::cout<<"New Offline Count Min Sketch Created\n";
+        }
+    }
+
+    void createCountMinSketch(std::string input_sketch_name){
+        if(!sketch) delete sketch;
+        ifstream input_sketch_file(input_sketch_name, std::ios::in | std::ios::binary);
+        if(!input_sketch_file.is_open()){
+            cout<<"Can't open sketch file\n";
+            return;
+        }
+
+        cout<<"Mahdee TODO: Implement this function\n";
+        
+    }
+
+    CounterType estimate_count(std::string kmer_str){
+        uint_fast64_t kmer_val = cal(kmer_str);
+        return sketch->estimate_count(kmer_val);
+    }
+}
+
+
