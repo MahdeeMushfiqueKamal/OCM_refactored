@@ -41,6 +41,12 @@ public:
         core_.resize(nh_ << np_);
     }
 
+    void clear_collision(){
+        collision_.clear();
+        collision_.shrink_to_fit();
+        collision_.resize(nh_ << np_);
+    }
+
     void update_count(uint64_t val, int round, int total_round) {  
         int min_collision = std::numeric_limits<int>::max();
         std::vector<uint64_t> pos(nh_);
@@ -125,6 +131,7 @@ public:
             }
         }
     }
+
     CounterType estimate_count(uint64_t val) const {
         int min_collision = std::numeric_limits<int>::max();
         std::vector<uint64_t> pos(nh_);
@@ -153,6 +160,8 @@ class OfflineCountMinSketch{
     bool conservative;
     bool canonicalize;
     int seed = 137;
+    // the function pointer for all the update functions
+    void (ocmbase<CounterType, HashStruct>::*updateFunctionPointer)(uint64_t, int, int);
 public:
     void createOfflineCountMinSketch(int np, int nh, int total_round, bool conservative, bool canonicalize){
         sketch = new ocmbase<CounterType, HashStruct>(np, nh, seed, conservative);
@@ -165,22 +174,116 @@ public:
         }
     }
 
-    void createCountMinSketch(std::string input_sketch_name){
-        if(!sketch) delete sketch;
-        ifstream input_sketch_file(input_sketch_name, std::ios::in | std::ios::binary);
-        if(!input_sketch_file.is_open()){
-            cout<<"Can't open sketch file\n";
-            return;
+//     void createCountMinSketch(std::string input_sketch_name){
+//         if(!sketch) delete sketch;
+//         ifstream input_sketch_file(input_sketch_name, std::ios::in | std::ios::binary);
+//         if(!input_sketch_file.is_open()){
+//             cout<<"Can't open sketch file\n";
+//             return;
+//         }
+
+//         cout<<"Mahdee TODO: Implement this function\n";
+        
+//     }
+
+    void updateFromFile(std::string filename, int kmerLen, int currentRound){
+        std::ifstream fasta_file(filename);
+        int64_t currentKmer = 0; int current_len = 0;
+        int chunk_size = 1000;
+        char arr_chunk[chunk_size];
+        bool isInHeader = false;
+        uint64_t MASK = (1ull << (2*kmerLen)) -1;
+        uint64_t checksum = 0;
+        // std::cout<<"value of mask: "<<MASK<<std::endl;
+        // int chunk_count = 0; int line_no =1;
+        while(!fasta_file.eof())
+        {
+            // chunk_count++;
+            fasta_file.read(arr_chunk, chunk_size);
+            std::streamsize originalChunkSize = fasta_file.gcount();
+            // https://stackoverflow.com/a/20911639/10941480
+            // std::cout<<"Chunk found datasize: "<<dataSize<<"\n";
+            // int i = 0;
+
+            // while(i<chunk_size)
+            for(int i=0; i< originalChunkSize; i++){
+                char ch = arr_chunk[i];         
+                // if (ch == '\n')line_no++;
+                // std::cout<<"char found "<<ch<<std::endl;
+                if(ch == '>'){
+                    isInHeader = true;
+                    currentKmer = 0; current_len = 0;
+                    continue;
+                }
+                else if (isInHeader==true && ch=='\n'){
+                    isInHeader = false;
+                    continue;
+                }
+                if(isInHeader){continue;}
+                if(ch=='\n' || ch=='\r' || ch==' '){continue;}
+                if(ch=='N' || ch == 'n' || ch == 'X' || ch == 'x'){
+                    currentKmer = 0;current_len = 0;
+                    continue;
+                }
+                else
+                {
+                    // kmer_count++;
+                    if(current_len < kmerLen){
+                        currentKmer = addChar(currentKmer, ch);
+                        current_len++;
+                    }
+                    else{
+                        currentKmer = addChar(currentKmer, ch) & MASK;
+                    }
+                    // std::cout<<currentKmer<<" "<<current_len<<std::endl;
+
+                    if(current_len==kmerLen)
+                    {
+                        //GOT KMER -- do the necessary things
+                        checksum += currentKmer;
+                        // call the function pointer
+                        (sketch->*updateFunctionPointer)(currentKmer, currentRound, total_round);
+                        if(canonicalize) (sketch->*updateFunctionPointer)(reverse_compliment(currentKmer, kmerLen), currentRound, total_round);
+                    }
+                }
+            }
+        }
+        std::cout<<"Updated Kmers from "<<filename<<", checksum "<<checksum<<"\n";
+    }
+
+    void constructOfflineCountMinSketch(std::string input_file, int kmerLen){
+        sketch->clear_core();
+        sketch->clear_collision();
+
+        for(int current_round = 1; current_round <= total_round; current_round++){
+            std::cout << "Performing Round : "<< current_round <<"\n";
+            if(current_round > 1){
+                std::cout<< "Will now perform update_collision\n";
+                updateFunctionPointer = &ocmbase<CounterType, HashStruct>::update_collision;
+
+                updateFromFile(input_file, kmerLen, current_round);
+            }
+            // clear counter array
+            sketch->clear_core();
+
+            if(conservative){
+                std::cout<< "Will now perform update_count_collision\n";
+                updateFunctionPointer = &ocmbase<CounterType, HashStruct>::update_count_collision;
+            }
+            else{
+                std::cout<< "Will now perform update_count\n";
+                updateFunctionPointer = &ocmbase<CounterType, HashStruct>::update_count;
+            
+            }
+            updateFromFile(input_file, kmerLen, current_round);
         }
 
-        cout<<"Mahdee TODO: Implement this function\n";
-        
     }
 
     CounterType estimate_count(std::string kmer_str){
         uint_fast64_t kmer_val = cal(kmer_str);
         return sketch->estimate_count(kmer_val);
     }
-}
+};
 
 
