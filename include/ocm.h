@@ -161,7 +161,8 @@ class OfflineCountMinSketch{
     bool canonicalize;
     int seed = 137;
     // the function pointer for all the update functions
-    void (ocmbase<CounterType, HashStruct>::*updateFunctionPointer)(uint64_t, int, int);
+    // void (ocmbase<CounterType, HashStruct>::*updateFunctionPointer)(uint64_t, int, int);
+    string updateFunction;
 public:
     void createOfflineCountMinSketch(int np, int nh, int total_round, bool conservative, bool canonicalize){
         sketch = new ocmbase<CounterType, HashStruct>(np, nh, seed, conservative);
@@ -242,8 +243,16 @@ public:
                         //GOT KMER -- do the necessary things
                         checksum += currentKmer;
                         // call the function pointer
-                        (sketch->*updateFunctionPointer)(currentKmer, currentRound, total_round);
-                        if(canonicalize) (sketch->*updateFunctionPointer)(reverse_compliment(currentKmer, kmerLen), currentRound, total_round);
+                        if(updateFunction == "update_count") sketch->update_count(currentKmer, currentRound, total_round);
+                        else if(updateFunction == "update_collision") sketch->update_collision(currentKmer, currentRound, total_round);
+                        else if(updateFunction == "update_count_collision") sketch->update_count_collision(currentKmer, currentRound, total_round);
+
+                        if(canonicalize && updateFunction == "update_count") sketch->update_count(reverse_compliment(currentKmer, kmerLen), currentRound, total_round);
+                        else if(canonicalize && updateFunction == "update_collision") sketch->update_collision(reverse_compliment(currentKmer, kmerLen), currentRound, total_round);
+                        else if(canonicalize && updateFunction == "update_count_collision") sketch->update_count_collision(reverse_compliment(currentKmer, kmerLen), currentRound, total_round);
+
+                        // (sketch->*updateFunctionPointer)(currentKmer, currentRound, total_round);
+                        // if(canonicalize) (sketch->*updateFunctionPointer)(reverse_compliment(currentKmer, kmerLen), currentRound, total_round);
                     }
                 }
             }
@@ -259,7 +268,8 @@ public:
             std::cout << "Performing Round : "<< current_round <<"\n";
             if(current_round > 1){
                 std::cout<< "Will now perform update_collision\n";
-                updateFunctionPointer = &ocmbase<CounterType, HashStruct>::update_collision;
+                // updateFunctionPointer = &ocmbase<CounterType, HashStruct>::update_collision;
+                updateFunction = "update_collision";
 
                 updateFromFile(input_file, kmerLen, current_round);
             }
@@ -268,11 +278,13 @@ public:
 
             if(conservative){
                 std::cout<< "Will now perform update_count_collision\n";
-                updateFunctionPointer = &ocmbase<CounterType, HashStruct>::update_count_collision;
+                // updateFunctionPointer = &ocmbase<CounterType, HashStruct>::update_count_collision;
+                updateFunction = "update_count_collision";
             }
             else{
                 std::cout<< "Will now perform update_count\n";
-                updateFunctionPointer = &ocmbase<CounterType, HashStruct>::update_count;
+                // updateFunctionPointer = &ocmbase<CounterType, HashStruct>::update_count;
+                updateFunction = "update_count";
             
             }
             updateFromFile(input_file, kmerLen, current_round);
