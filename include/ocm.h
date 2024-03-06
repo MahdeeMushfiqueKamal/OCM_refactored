@@ -6,13 +6,15 @@
 #include <assert.h>
 #include "hash.h"
 #include "support.h"
+#include "compact_vector/compact_vector.hpp"
 
 using std::allocator;
 
-template<typename CounterType=int32_t , typename HashStruct = WangHash >
+template<typename CounterType=int32_t , typename HashStruct = WangHash, unsigned int BitSize = 3>
 class ocmbase{
     std::vector<CounterType, allocator<CounterType>> core_; //resisters of the hash table
-    std::vector<unsigned int> collision_;  // will keep track of collision after each round
+    // std::vector<unsigned int> collision_;  // will keep track of collision after each round
+    compact::vector<unsigned int, BitSize> collision_; 
     uint32_t np_;  // no of column (W) is 2^np_
     uint32_t nh_;  // number of hash functions
     uint64_t mask_;   // and-ing a number with mask will give X mod W
@@ -41,7 +43,7 @@ public:
 
     void clear_collision(){
         collision_.clear();
-        collision_.shrink_to_fit();
+        // collision_.shrink_to_fit();
         collision_.resize(nh_ << np_);
     }
 
