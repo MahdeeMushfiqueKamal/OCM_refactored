@@ -1,3 +1,4 @@
+// this file will be deleted after code review
 #include<iostream>
 #include"include/ocm.h"
 #include <chrono>
@@ -7,8 +8,8 @@ using namespace std;
 int main(){
     std::cout << "Hello world\n";
     OfflineCountMinSketch <uint64_t, WangHash> offlineCountMinSketchObject;
-    // createOfflineCountMinSketch(np, nh, total_round, conservative, canonicalize);
-    offlineCountMinSketchObject.createOfflineCountMinSketch(21, 7, 4, true, true);
+    // createOfflineCountMinSketch(height, width, total_round, conservative, canonicalize);
+    offlineCountMinSketchObject.createOfflineCountMinSketch(7, 2097152, 4, true, true);
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     offlineCountMinSketchObject.constructOfflineCountMinSketch("input/lhg22L20MC5x.fa",22);
@@ -34,7 +35,6 @@ int main(){
     string kmer; int true_count;
 
     while (infile >> kmer >> true_count){
-        // cout<<kmer<<","<<true_count<<","<<offlineCountMinSketchObject.estimate_count(kmer)<<endl;
         query_result_file <<kmer<<","<<true_count<<","<<offlineCountMinSketchObject.estimate_count(kmer)<<endl;
     }
 

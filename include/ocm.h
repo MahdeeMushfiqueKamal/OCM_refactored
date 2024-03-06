@@ -208,13 +208,14 @@ class OfflineCountMinSketch{
     typedef void (ocmbase<CounterType, HashStruct>::*UpdateFunctionPointer)(uint64_t, int, int);
     UpdateFunctionPointer updateFunctionPointer;
 public:
-    void createOfflineCountMinSketch(int np, int nh, int total_round, bool conservative, bool canonicalize){
-        sketch = new ocmbase<CounterType, HashStruct>(np, nh, seed, conservative);
+    void createOfflineCountMinSketch(int height, int width, int total_round, bool conservative, bool canonicalize){
+        int np = log2(width);
+        sketch = new ocmbase<CounterType, HashStruct>(np, height, seed, conservative);
         this->total_round = total_round;
         this->conservative = conservative;
         this->canonicalize = canonicalize;
         if(sketch != NULL){
-            if(conservative) std::cout<<"New Offline Conservative Count Min Sketch Created with height: "<< nh << " width: "<< (1<<np) << "\n";
+            if(conservative) std::cout<<"New Offline Conservative Count Min Sketch Created with height: "<< height << " width: "<< (1<<np) << "\n";
             else std::cout<<"New Offline Count Min Sketch Created\n";
         }
     }
