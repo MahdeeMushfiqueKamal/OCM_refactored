@@ -62,3 +62,9 @@ Command line arguments are similar to Query command. But, the query file contain
 
 Example: `./ocm query -f sketch_file.sketch -q input/test_exact_count_lhg22L20MC5x_20000.txt -o output/query_result.csv`
 
+
+#### Running Count Min Sketch
+
+- `g++ -std=c++17 -o cm cm.cpp`
+- `./cm count -k 22 -fa input/lhg22L20MC5x.fa -o sketch_file.sketch`
+- `./cm query -f sketch_file.sketch -q input/test_exact_count_lhg22L20MC5x_20000.txt -o output/query_result.csv`
