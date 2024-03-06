@@ -150,6 +150,50 @@ public:
         }
         return min_count;
     }
+
+    void save_sketch(std::string output_file_name){
+        std::cout<<"saving sketch------\n";
+        std::ofstream outputfile;
+        outputfile.open(output_file_name, std::ios::out | std::ios::binary);
+        // Write Binary File //
+        if(outputfile.is_open()){
+            outputfile.write(reinterpret_cast<char*>(&np_), sizeof(np_));
+            outputfile.write(reinterpret_cast<char*>(&nh_), sizeof(nh_));
+            outputfile.write(reinterpret_cast<char*>(&seedseed_), sizeof(seedseed_));
+
+
+            for(unsigned i = 0; i < core_.size(); i++){
+                outputfile.write(reinterpret_cast<char*>(&core_[i]), sizeof(core_[i]));
+            }
+            std::cout<<"core is saved------\n";
+            for(unsigned i = 0; i < collision_.size(); i++){
+                int temp = collision_[i];
+                outputfile.write(reinterpret_cast<char*>(&temp), sizeof(temp));
+                //outputfile.write(reinterpret_cast<char*>(&collision_[i]), sizeof(collision_[i]));
+            }
+            outputfile.close();
+        }
+        std::cout<<"Sketch is saved------\n";
+    }
+
+    void load_from_sketch(std::string input_file_name){
+        std::cout<<"loading data from sketch file------\n";
+        std::ifstream input_file;
+        input_file.open(input_file_name, std::ios::in | std::ios::binary);
+        if(input_file.is_open()){
+            input_file.seekg(sizeof(uint32_t)*2 + sizeof(uint64_t), std::ios::beg);            //future work
+            for(uint32_t i=0; i< (nh_<<np_) ; i++){
+                input_file.read(reinterpret_cast<char *>(&core_[i]), sizeof(core_[i]));
+            }
+            std::cout<<"core is read from sketch file------"<<std::endl;
+            for(uint32_t i=0; i< (nh_<<np_); i++){
+                int temp;
+                input_file.read(reinterpret_cast<char *>(&temp), sizeof(temp));
+                collision_[i]=temp;
+            }
+        }
+
+    }
 };
 
 
@@ -170,22 +214,31 @@ public:
         this->conservative = conservative;
         this->canonicalize = canonicalize;
         if(sketch != NULL){
-            if(conservative) std::cout<<"New Offline Conservative Count Min Sketch Created\n";
+            if(conservative) std::cout<<"New Offline Conservative Count Min Sketch Created with height: "<< nh << " width: "<< (1<<np) << "\n";
             else std::cout<<"New Offline Count Min Sketch Created\n";
         }
     }
 
-//     void createCountMinSketch(std::string input_sketch_name){
-//         if(!sketch) delete sketch;
-//         ifstream input_sketch_file(input_sketch_name, std::ios::in | std::ios::binary);
-//         if(!input_sketch_file.is_open()){
-//             cout<<"Can't open sketch file\n";
-//             return;
-//         }
+    void createOfflineCountMinSketch(std::string input_sketch_name){
+        if(!sketch) delete sketch;
+        ifstream input_sketch_file(input_sketch_name, std::ios::in | std::ios::binary);
+        if(!input_sketch_file.is_open()){
+            cout<<"Can't open sketch file\n";
+            return;
+        }
 
-//         cout<<"Mahdee TODO: Implement this function\n";
-        
-//     }
+        uint32_t NP, NH;  uint64_t SEED;
+        input_sketch_file.read(reinterpret_cast<char *>(&NP), sizeof(NP));
+        input_sketch_file.read(reinterpret_cast<char *>(&NH), sizeof(NH));
+        input_sketch_file.read(reinterpret_cast<char *>(&SEED), sizeof(SEED));
+        input_sketch_file.close();
+
+        sketch = new ocmbase<CounterType, HashStruct>(NP, NH, SEED, false);
+
+        // note while creating a new object from sketch file, we are setting conservative = False. 
+        // This is because, we are not storing the conservative flag in the sketch file.
+        sketch->load_from_sketch(input_sketch_name);
+    }
 
     void updateFromFile(std::string filename, int kmerLen, int currentRound){
         std::ifstream fasta_file(filename);
@@ -295,6 +348,10 @@ public:
     CounterType estimate_count(std::string kmer_str){
         uint_fast64_t kmer_val = cal(kmer_str);
         return sketch->estimate_count(kmer_val);
+    }
+
+    void save_sketch(std::string output_file_name){
+        sketch->save_sketch(output_file_name);
     }
 };
 
