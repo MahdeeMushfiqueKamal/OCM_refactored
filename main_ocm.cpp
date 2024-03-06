@@ -8,7 +8,7 @@ int main(){
     std::cout << "Hello world\n";
     OfflineCountMinSketch <uint64_t, WangHash> offlineCountMinSketchObject;
     // createOfflineCountMinSketch(np, nh, total_round, conservative, canonicalize);
-    offlineCountMinSketchObject.createOfflineCountMinSketch(21, 7, 1, true, true);
+    offlineCountMinSketchObject.createOfflineCountMinSketch(21, 7, 4, true, true);
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     offlineCountMinSketchObject.constructOfflineCountMinSketch("input/lhg22L20MC5x.fa",22);
