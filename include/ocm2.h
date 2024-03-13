@@ -15,22 +15,21 @@ class ocmbase{
     std::vector<CounterType, allocator<CounterType>> core_; //resisters of the hash table
     // std::vector<unsigned int> collision_;  // will keep track of collision after each round
     compact::vector<unsigned int, BitSize> collision_; 
-    uint32_t np_;  // no of column (W) is 2^np_
+    uint32_t w_;  // width of the hash table
     uint32_t nh_;  // number of hash functions
-    uint64_t mask_;   // and-ing a number with mask will give X mod W
     uint64_t seedseed_;
     const bool conservative_;
     HashStruct hf_;
     std::vector<uint64_t, allocator<uint64_t>> seeds_;
 
 public:
-    ocmbase(unsigned np, unsigned nh=10, unsigned seedseed=137, bool conservative = false):
-        np_(np),nh_(nh),mask_((1ull << np_) - 1),seedseed_(seedseed),conservative_(conservative)
+    ocmbase(unsigned w, unsigned nh=10, unsigned seedseed=137, bool conservative = false):
+        w_(w),nh_(nh),seedseed_(seedseed),conservative_(conservative)
         {
-            core_.resize(nh_ << np_);
-            collision_.resize(nh_ << np_);
+            core_.resize(nh_ * w_);
+            collision_.resize(nh_ * w_);
             for(int i=0;i<collision_.size(); i++) collision_[i] = 0;
-            assert(core_.size() == (nh_ << np_) );
+            assert(core_.size() == (nh_ * w_) );
             std::mt19937_64 mt(seedseed_ + 4);
             while(seeds_.size() < static_cast<unsigned>(nh_)) seeds_.emplace_back(mt());
         }
@@ -38,13 +37,13 @@ public:
     void clear_core(){
         core_.clear();
         core_.shrink_to_fit();
-        core_.resize(nh_ << np_);
+        core_.resize(nh_ * w_);
     }
 
     void clear_collision(){
         collision_.clear();
         // collision_.shrink_to_fit();
-        collision_.resize(nh_ << np_);
+        collision_.resize(nh_ * w_);
     }
 
     void update_count(uint64_t val, int round, int total_round) {  
@@ -52,7 +51,7 @@ public:
         std::vector<uint64_t> pos(nh_);
         for(unsigned added = 0; added < nh_; added++){
             CounterType hv = hf_(val ^ seeds_[added]);
-            pos[added] = (hv & mask_) + (added << np_);   // exact positions where we will increase the counter by one.
+            pos[added] = (hv % w_) + (added * w_);   // exact positions where we will increase the counter by one.
             min_collision = std::min(min_collision, (int)collision_[pos[added]]);
         }
 
@@ -66,7 +65,7 @@ public:
         std::vector<uint64_t> pos(nh_);
         for(unsigned added = 0; added < nh_; added++){
             CounterType hv = hf_(val ^ seeds_[added]);
-            pos[added] = (hv & mask_) + (added << np_);   // exact positions where we will increase the counter by one.
+            pos[added] = (hv % w_) + (added * w_);   // exact positions where we will increase the counter by one.
             min_collision = std::min(min_collision, (int)collision_[pos[added]]);
         }
 
@@ -91,7 +90,7 @@ public:
         std::vector<uint64_t> pos(nh_);
         for(unsigned added = 0; added < nh_; added++){
             CounterType hv = hf_(val ^ seeds_[added]);
-            pos[added] = (hv & mask_) + (added << np_);   // exact positions where we will increase the counter by one.
+            pos[added] = (hv % w_) + (added * w_);   // exact positions where we will increase the counter by one.
             min_collision = std::min(min_collision, (int)collision_[pos[added]]);
         }
 
@@ -138,7 +137,7 @@ public:
         // map kmers and find min collision
         for(unsigned added = 0; added < nh_; added++){
             CounterType hv = hf_(val ^ seeds_[added]);
-            pos[added] = (hv & mask_) + (added << np_);   // exact positions where we will increase the counter by one.
+            pos[added] = (hv % w_) + (added * w_);   // exact positions where we will increase the counter by one.
             min_collision = std::min(min_collision, (int)collision_[pos[added]]);
         }
 
@@ -157,7 +156,7 @@ public:
         outputfile.open(output_file_name, std::ios::out | std::ios::binary);
         // Write Binary File //
         if(outputfile.is_open()){
-            outputfile.write(reinterpret_cast<char*>(&np_), sizeof(np_));
+            outputfile.write(reinterpret_cast<char*>(&w_), sizeof(w_));
             outputfile.write(reinterpret_cast<char*>(&nh_), sizeof(nh_));
             outputfile.write(reinterpret_cast<char*>(&seedseed_), sizeof(seedseed_));
 
@@ -182,11 +181,11 @@ public:
         input_file.open(input_file_name, std::ios::in | std::ios::binary);
         if(input_file.is_open()){
             input_file.seekg(sizeof(uint32_t)*2 + sizeof(uint64_t), std::ios::beg);
-            for(uint32_t i=0; i< (nh_<<np_) ; i++){
+            for(uint32_t i=0; i< (nh_<<w_) ; i++){
                 input_file.read(reinterpret_cast<char *>(&core_[i]), sizeof(core_[i]));
             }
             std::cout<<"core is read from sketch file------"<<std::endl;
-            for(uint32_t i=0; i< (nh_<<np_); i++){
+            for(uint32_t i=0; i< (nh_<<w_); i++){
                 int temp;
                 input_file.read(reinterpret_cast<char *>(&temp), sizeof(temp));
                 collision_[i]=temp;
@@ -209,14 +208,13 @@ class OfflineCountMinSketch{
     UpdateFunctionPointer updateFunctionPointer;
 public:
     void createOfflineCountMinSketch(int height, int width, int total_round, bool conservative, bool canonicalize){
-        int np = log2(width);
-        sketch = new ocmbase<CounterType, HashStruct, BitSize>(np, height, seed, conservative);
+        sketch = new ocmbase<CounterType, HashStruct, BitSize>(width, height, seed, conservative);
         this->total_round = total_round;
         this->conservative = conservative;
         this->canonicalize = canonicalize;
         if(sketch != NULL){
-            if(conservative) std::cout<<"New Offline Conservative Count Min Sketch Created with height: "<< height << " width: "<< (1<<np) << " BitSize: " << BitSize << " See: "<< seed << "\n";
-            else std::cout<<"New Offline Count Min Sketch Created with height: "<< height << " width: "<< (1<<np) << " BitSize: " << BitSize << " See: "<< seed << "\n";
+            if(conservative) std::cout<<"New Offline Conservative Count Min Sketch Created with height: "<< height << " width: "<< width << " BitSize: " << BitSize << " Seed: "<< seed << "\n";
+            else std::cout<<"New Offline Count Min Sketch Created with height: "<< height << " width: "<< width << " BitSize: " << BitSize << " Seed: "<< seed << "\n";
         }
     }
 
@@ -228,14 +226,14 @@ public:
             return;
         }
 
-        uint32_t NP, NH;  uint64_t SEED;
-        input_sketch_file.read(reinterpret_cast<char *>(&NP), sizeof(NP));
+        uint32_t WIDTH, NH;  uint64_t SEED;
+        input_sketch_file.read(reinterpret_cast<char *>(&WIDTH), sizeof(WIDTH));
         input_sketch_file.read(reinterpret_cast<char *>(&NH), sizeof(NH));
         input_sketch_file.read(reinterpret_cast<char *>(&SEED), sizeof(SEED));
         input_sketch_file.close();
 
-        sketch = new ocmbase<CounterType, HashStruct, BitSize>(NP, NH, SEED, false);
-        std::cout<<"New Offline Count Min Sketch Created with height: "<< NH << " width: "<< (1<<NP) << " BitSize: " << BitSize << " See: "<< SEED << "\n";
+        sketch = new ocmbase<CounterType, HashStruct, BitSize>(WIDTH, NH, SEED, false);
+        std::cout<<"New Offline Count Min Sketch Created with height: "<< NH << " width: "<< WIDTH << " BitSize: " << BitSize << " Seed: "<< SEED << "\n";
 
         // note while creating a new object from sketch file, we are setting conservative = False. 
         // This is because, we are not storing the conservative flag in the sketch file.
