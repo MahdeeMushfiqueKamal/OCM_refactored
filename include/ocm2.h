@@ -181,11 +181,11 @@ public:
         input_file.open(input_file_name, std::ios::in | std::ios::binary);
         if(input_file.is_open()){
             input_file.seekg(sizeof(uint32_t)*2 + sizeof(uint64_t), std::ios::beg);
-            for(uint32_t i=0; i< (nh_<<w_) ; i++){
+            for(uint32_t i=0; i< (nh_ * w_) ; i++){
                 input_file.read(reinterpret_cast<char *>(&core_[i]), sizeof(core_[i]));
             }
             std::cout<<"core is read from sketch file------"<<std::endl;
-            for(uint32_t i=0; i< (nh_<<w_); i++){
+            for(uint32_t i=0; i< (nh_ * w_); i++){
                 int temp;
                 input_file.read(reinterpret_cast<char *>(&temp), sizeof(temp));
                 collision_[i]=temp;
