@@ -7,10 +7,10 @@
 #include "hash.h"
 #include "support.h"
 #include "compact_vector/compact_vector.hpp"
-
+#define bit_size 3
 using std::allocator;
 
-template<typename CounterType=int32_t , typename HashStruct = WangHash, unsigned int BitSize = 3>
+template<typename CounterType=int32_t , typename HashStruct = WangHash, unsigned int BitSize = bit_size>
 class ocmbase{
     std::vector<CounterType, allocator<CounterType>> core_; //resisters of the hash table
     // std::vector<unsigned int> collision_;  // will keep track of collision after each round
@@ -181,7 +181,7 @@ public:
         std::ifstream input_file;
         input_file.open(input_file_name, std::ios::in | std::ios::binary);
         if(input_file.is_open()){
-            input_file.seekg(sizeof(uint32_t)*2 + sizeof(uint64_t), std::ios::beg);            //future work
+            input_file.seekg(sizeof(uint32_t)*2 + sizeof(uint64_t), std::ios::beg);
             for(uint32_t i=0; i< (nh_<<np_) ; i++){
                 input_file.read(reinterpret_cast<char *>(&core_[i]), sizeof(core_[i]));
             }
@@ -197,7 +197,7 @@ public:
 };
 
 
-template<typename CounterType=int32_t , typename HashStruct = WangHash >
+template<typename CounterType=int32_t , typename HashStruct = WangHash, unsigned int BitSize = bit_size>
 class OfflineCountMinSketch{
     ocmbase<CounterType, HashStruct> *sketch;
     int total_round;
@@ -210,13 +210,13 @@ class OfflineCountMinSketch{
 public:
     void createOfflineCountMinSketch(int height, int width, int total_round, bool conservative, bool canonicalize){
         int np = log2(width);
-        sketch = new ocmbase<CounterType, HashStruct>(np, height, seed, conservative);
+        sketch = new ocmbase<CounterType, HashStruct, BitSize>(np, height, seed, conservative);
         this->total_round = total_round;
         this->conservative = conservative;
         this->canonicalize = canonicalize;
         if(sketch != NULL){
-            if(conservative) std::cout<<"New Offline Conservative Count Min Sketch Created with height: "<< height << " width: "<< (1<<np) << "\n";
-            else std::cout<<"New Offline Count Min Sketch Created\n";
+            if(conservative) std::cout<<"New Offline Conservative Count Min Sketch Created with height: "<< NH << " width: "<< (1<<NP) << " BitSize: " << BitSize << " See: "<< SEED << "\n";
+            else std::cout<<"New Offline Count Min Sketch Created with height: "<< NH << " width: "<< (1<<NP) << " BitSize: " << BitSize << " See: "<< SEED << "\n";
         }
     }
 
@@ -234,7 +234,8 @@ public:
         input_sketch_file.read(reinterpret_cast<char *>(&SEED), sizeof(SEED));
         input_sketch_file.close();
 
-        sketch = new ocmbase<CounterType, HashStruct>(NP, NH, SEED, false);
+        sketch = new ocmbase<CounterType, HashStruct, BitSize>(NP, NH, SEED, false);
+        std::cout<<"New Offline Count Min Sketch Created with height: "<< NH << " width: "<< (1<<NP) << " BitSize: " << BitSize << " See: "<< SEED << "\n";
 
         // note while creating a new object from sketch file, we are setting conservative = False. 
         // This is because, we are not storing the conservative flag in the sketch file.

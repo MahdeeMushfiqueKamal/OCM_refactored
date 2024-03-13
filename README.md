@@ -60,7 +60,7 @@ Run `./ocm test `
 
 Command line arguments are similar to Query command. But, the query file contains k-mer and their true count. The output file reports k-mer, true_count, estimated_count.
 
-Example: `./ocm query -f sketch_file.sketch -q input/test_exact_count_lhg22L20MC5x_20000.txt -o output/query_result.csv`
+Example: `./ocm test -f sketch_file.sketch -q input/test_exact_count_lhg22L20MC5x_20000.txt -o output/query_result.csv`
 
 
 #### Running Count Min Sketch
