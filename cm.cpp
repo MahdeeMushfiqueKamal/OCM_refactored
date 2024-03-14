@@ -1,5 +1,5 @@
 #include<iostream>
-#include"include/cm.h"
+#include"include/cm2.h"
 #include <chrono>
 
 using namespace std;

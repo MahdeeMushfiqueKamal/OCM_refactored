@@ -103,7 +103,7 @@ public:
 
 
 template<typename CounterType=int32_t , typename HashStruct = WangHash >
-class CountMinSketch2{
+class CountMinSketch{
     ccmbase2<CounterType, HashStruct> *sketch;
     bool conservative; 
     bool canonicalize;

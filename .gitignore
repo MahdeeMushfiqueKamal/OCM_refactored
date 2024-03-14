@@ -1,3 +1,4 @@
 .vscode
 *.sketch
 *.fa
+test_exact_count*.txt
