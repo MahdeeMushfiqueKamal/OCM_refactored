@@ -244,6 +244,10 @@ public:
 
     void updateFromFile(std::string filename, int kmerLen, int currentRound){
         std::ifstream fasta_file(filename);
+        if(!fasta_file.is_open()){
+            std::cout << "cant't open fasta file. Fetal Error.\n";
+            exit(1); 
+        }
         int64_t currentKmer = 0; int current_len = 0;
         int chunk_size = 1000;
         char arr_chunk[chunk_size];
